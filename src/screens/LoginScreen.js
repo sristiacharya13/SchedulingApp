@@ -10,10 +10,12 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Keyboard,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme/theme';
+import AnimatedPressable from '../../components/ui/AnimatedPressable';
 
 const LoginScreen = () => {
   const scrollRef = useRef(null);
@@ -26,6 +28,8 @@ const LoginScreen = () => {
 
   const [mode, setMode] = useState('signIn'); // 'signIn' | 'signUp'
   const isSignUp = mode === 'signUp';
+  const toggleAnim = useRef(new Animated.Value(0)).current;
+  const [toggleWidth, setToggleWidth] = useState(0);
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -36,6 +40,33 @@ const LoginScreen = () => {
   const { login, signUp } = useAuth();
   const FULL_NAME_MAX = 48;
 
+  const focusAnim = useRef({
+    fullName: new Animated.Value(0),
+    email: new Animated.Value(0),
+    password: new Animated.Value(0),
+    confirmPassword: new Animated.Value(0),
+  }).current;
+
+  const focusBorder = (v) =>
+    v.interpolate({
+      inputRange: [0, 1],
+      outputRange: [theme.colors.borderStrong, theme.colors.primary],
+    });
+
+  const focusGlow = (v) =>
+    v.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 0.16],
+    });
+
+  const setFocused = (key, isFocused) => {
+    Animated.timing(focusAnim[key], {
+      toValue: isFocused ? 1 : 0,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
+  };
+
   useEffect(() => {
     setFullName('');
     setEmail('');
@@ -44,6 +75,14 @@ const LoginScreen = () => {
     setShowPassword(false);
     setShowConfirmPassword(false);
   }, [mode]);
+
+  useEffect(() => {
+    Animated.timing(toggleAnim, {
+      toValue: isSignUp ? 1 : 0,
+      duration: 240,
+      useNativeDriver: true,
+    }).start();
+  }, [isSignUp, toggleAnim]);
 
   useEffect(() => {
     const onShow = (e) => {
@@ -163,6 +202,27 @@ const LoginScreen = () => {
       >
         <View style={styles.authCard}>
           <View style={styles.segmented}>
+            <View
+              style={styles.segmentIndicatorTrack}
+              onLayout={(e) => setToggleWidth(e?.nativeEvent?.layout?.width || 0)}
+            >
+              <Animated.View
+                style={[
+                  styles.segmentIndicator,
+                  {
+                    width: Math.max((toggleWidth - 8) / 2, 0),
+                    transform: [
+                      {
+                        translateX: toggleAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, Math.max((toggleWidth - 8) / 2, 0)],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+            </View>
             <TouchableOpacity
               onPress={() => setMode('signIn')}
               style={[styles.segment, !isSignUp && styles.segmentActive]}
@@ -194,8 +254,17 @@ const LoginScreen = () => {
                   {fullName.length}/{FULL_NAME_MAX}
                 </Text>
               </View>
+              <Animated.View
+                style={[
+                  styles.inputWrap,
+                  {
+                    borderColor: focusBorder(focusAnim.fullName),
+                    shadowOpacity: focusGlow(focusAnim.fullName),
+                  },
+                ]}
+              >
               <TextInput
-                style={styles.input}
+                style={styles.inputInner}
                 placeholder="John Doe"
                 placeholderTextColor={theme.colors.textMuted}
                 value={fullName}
@@ -203,9 +272,16 @@ const LoginScreen = () => {
                 autoCapitalize="words"
                 returnKeyType="next"
                 maxLength={FULL_NAME_MAX}
-                onFocus={() => scrollToField(fullNameFieldRef)}
-                onBlur={() => setFullName((v) => normalizeFullName(v))}
+                onFocus={() => {
+                  setFocused('fullName', true);
+                  scrollToField(fullNameFieldRef);
+                }}
+                onBlur={() => {
+                  setFocused('fullName', false);
+                  setFullName((v) => normalizeFullName(v));
+                }}
               />
+              </Animated.View>
               {fullName.length >= FULL_NAME_MAX && (
                 <Text style={styles.inlineError}>Full name has reached the maximum length.</Text>
               )}
@@ -214,8 +290,17 @@ const LoginScreen = () => {
 
           <View style={styles.field} ref={emailFieldRef}>
             <Text style={styles.label}>Email</Text>
+            <Animated.View
+              style={[
+                styles.inputWrap,
+                {
+                  borderColor: focusBorder(focusAnim.email),
+                  shadowOpacity: focusGlow(focusAnim.email),
+                },
+              ]}
+            >
             <TextInput
-              style={styles.input}
+              style={styles.inputInner}
               placeholder="you@example.com"
               placeholderTextColor={theme.colors.textMuted}
               value={email}
@@ -223,22 +308,41 @@ const LoginScreen = () => {
               keyboardType="email-address"
               autoCapitalize="none"
               returnKeyType="next"
-              onFocus={() => scrollToField(emailFieldRef)}
+              onFocus={() => {
+                setFocused('email', true);
+                scrollToField(emailFieldRef);
+              }}
+              onBlur={() => setFocused('email', false)}
             />
+            </Animated.View>
           </View>
 
           <View style={styles.field} ref={passwordFieldRef}>
             <Text style={styles.label}>Password</Text>
             <View style={styles.passwordRow}>
+              <Animated.View
+                style={[
+                  styles.inputWrap,
+                  styles.passwordWrap,
+                  {
+                    borderColor: focusBorder(focusAnim.password),
+                    shadowOpacity: focusGlow(focusAnim.password),
+                  },
+                ]}
+              >
               <TextInput
-                style={[styles.input, styles.passwordInput]}
+                style={[styles.inputInner, styles.passwordInput]}
                 placeholder="••••••••"
                 placeholderTextColor={theme.colors.textMuted}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
-                onFocus={() => scrollToField(passwordFieldRef)}
+                onFocus={() => {
+                  setFocused('password', true);
+                  scrollToField(passwordFieldRef);
+                }}
+                onBlur={() => setFocused('password', false)}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword((v) => !v)}
@@ -249,6 +353,7 @@ const LoginScreen = () => {
               >
                 <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={theme.colors.textMuted} />
               </TouchableOpacity>
+              </Animated.View>
             </View>
           </View>
 
@@ -256,15 +361,29 @@ const LoginScreen = () => {
             <View style={styles.field} ref={confirmPasswordFieldRef}>
               <Text style={styles.label}>Confirm password</Text>
               <View style={styles.passwordRow}>
+                <Animated.View
+                  style={[
+                    styles.inputWrap,
+                    styles.passwordWrap,
+                    {
+                      borderColor: focusBorder(focusAnim.confirmPassword),
+                      shadowOpacity: focusGlow(focusAnim.confirmPassword),
+                    },
+                  ]}
+                >
                 <TextInput
-                  style={[styles.input, styles.passwordInput]}
+                  style={[styles.inputInner, styles.passwordInput]}
                   placeholder="••••••••"
                   placeholderTextColor={theme.colors.textMuted}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
                   autoCapitalize="none"
-                  onFocus={() => scrollToField(confirmPasswordFieldRef)}
+                  onFocus={() => {
+                    setFocused('confirmPassword', true);
+                    scrollToField(confirmPasswordFieldRef);
+                  }}
+                  onBlur={() => setFocused('confirmPassword', false)}
                 />
                 <TouchableOpacity
                   onPress={() => setShowConfirmPassword((v) => !v)}
@@ -275,13 +394,14 @@ const LoginScreen = () => {
                 >
                   <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color={theme.colors.textMuted} />
                 </TouchableOpacity>
+                </Animated.View>
               </View>
             </View>
           )}
 
-          <TouchableOpacity style={styles.button} onPress={handleSubmit} activeOpacity={0.92}>
+          <AnimatedPressable style={styles.button} onPress={handleSubmit}>
             <Text style={styles.buttonText}>{isSignUp ? 'Create account' : 'Sign in'}</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
 
           <Text style={styles.footerHint}>
             {isSignUp ? 'Already have an account?' : 'New here?'}{' '}
@@ -317,6 +437,21 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.pill,
     padding: 4,
     marginBottom: theme.spacing.lg,
+    overflow: 'hidden',
+  },
+  segmentIndicatorTrack: {
+    ...StyleSheet.absoluteFillObject,
+    padding: 4,
+  },
+  segmentIndicator: {
+    height: '100%',
+    borderRadius: theme.radii.pill,
+    backgroundColor: theme.colors.card,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   segment: {
     flex: 1,
@@ -325,12 +460,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   segmentActive: {
-    backgroundColor: theme.colors.card,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    backgroundColor: 'transparent',
   },
   segmentText: { ...theme.typography.h3, color: theme.colors.textMuted },
   segmentTextActive: { color: theme.colors.text },
@@ -345,18 +475,26 @@ const styles = StyleSheet.create({
   labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   label: { ...theme.typography.small, color: theme.colors.textMuted },
   hint: { ...theme.typography.small, color: theme.colors.textMuted },
-  input: {
+  inputWrap: {
     borderWidth: 1,
     borderColor: theme.colors.borderStrong,
+    borderRadius: theme.radii.md,
+    backgroundColor: '#fff',
+    shadowColor: theme.colors.primary,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 0,
+  },
+  inputInner: {
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: theme.radii.md,
     fontSize: 16,
     color: theme.colors.text,
-    backgroundColor: '#fff',
   },
   passwordRow: { flexDirection: 'row', alignItems: 'center' },
   passwordInput: { flex: 1, paddingRight: 44 },
+  passwordWrap: { flex: 1 },
   eyeBtn: {
     position: 'absolute',
     right: 10,

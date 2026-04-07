@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,7 @@ const HomeScreen = ({ navigation }) => {
   const displayName = user?.name?.trim?.() || 'there';
 
   const renderProvider = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ProviderDetail', { provider: item })}>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ProviderDetail', { provider: item })} activeOpacity={0.9}>
       <Image source={{ uri: item.image }} style={styles.image} />
       <View style={styles.info}>
         <Text style={styles.name}>{item.name}</Text>

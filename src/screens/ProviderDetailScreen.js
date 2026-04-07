@@ -29,13 +29,13 @@ const ProviderDetailScreen = ({ route, navigation }) => {
     };
 
     bookAppointment(newAppointment);
-    setTimeout(()=>{
-    Alert.alert(
-      "Success", 
-      "Appointment booked successfully!",
-      [{ text: "OK", onPress: () => {setIsBooking(false); navigation.navigate('Home') }}]
-    );
-  },1000);
+    setTimeout(() => {
+      Alert.alert(
+        "Success",
+        "Appointment booked successfully!",
+        [{ text: "OK", onPress: () => { setIsBooking(false); navigation.navigate('Home'); } }]
+      );
+    }, 800);
 };
 
   return (

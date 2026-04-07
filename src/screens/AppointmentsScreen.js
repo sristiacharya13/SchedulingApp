@@ -25,11 +25,7 @@ const AppointmentsScreen = () => {
         <Text style={styles.details}>{item.category} • {item.date}</Text>
         <Text style={styles.timeSlot}>Time: {item.time}</Text>
       </View>
-      <TouchableOpacity 
-        style={styles.cancelBtn}
-        onPress={() => handleCancel(item.id)}
-        activeOpacity={0.85}
-      >
+      <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(item.id)} activeOpacity={0.85}>
         <Ionicons name="close-circle-outline" size={18} color={theme.colors.danger} />
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>
