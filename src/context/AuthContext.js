@@ -7,7 +7,11 @@ const normalizeEmail = (value) => (value || '').trim().toLowerCase();
 const deriveNameFromEmail = (email) => {
   const e = normalizeEmail(email);
   const local = e.split('@')[0] || '';
-  const cleaned = local.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const cleaned = local
+    .replace(/[._-]+/g, ' ')
+    .replace(/\d+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!cleaned) return '';
   return cleaned
     .split(' ')

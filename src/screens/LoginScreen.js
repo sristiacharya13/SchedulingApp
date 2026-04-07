@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,22 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  ScrollView,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme/theme';
 
 const LoginScreen = () => {
+  const scrollRef = useRef(null);
+  const [keyboardPadding, setKeyboardPadding] = useState(0);
+
+  const fullNameFieldRef = useRef(null);
+  const emailFieldRef = useRef(null);
+  const passwordFieldRef = useRef(null);
+  const confirmPasswordFieldRef = useRef(null);
+
   const [mode, setMode] = useState('signIn'); // 'signIn' | 'signUp'
   const isSignUp = mode === 'signUp';
 
@@ -35,7 +45,58 @@ const LoginScreen = () => {
     setShowConfirmPassword(false);
   }, [mode]);
 
+  useEffect(() => {
+    const onShow = (e) => {
+      const height = e?.endCoordinates?.height || 0;
+      // Cap padding so it doesn't over-scroll on very tall keyboards / small screens
+      setKeyboardPadding(Math.min(height, 340));
+    };
+    const onHide = () => setKeyboardPadding(0);
+
+    const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', onShow);
+    const hideSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', onHide);
+    return () => {
+      showSub?.remove?.();
+      hideSub?.remove?.();
+    };
+  }, []);
+
+  const scrollToField = (fieldRef) => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const fieldNode = fieldRef?.current;
+        const scrollNode = scrollRef?.current;
+        if (!fieldNode?.measureLayout || !scrollNode) return;
+
+        fieldNode.measureLayout(
+          scrollNode,
+          (_x, y) => {
+            scrollNode.scrollTo?.({ y: Math.max(y - 18, 0), animated: true });
+          },
+          () => {}
+        );
+      }, 60);
+    });
+  };
+
   const normalizeEmail = (value) => value.trim().toLowerCase();
+
+  const normalizeFullName = (value) => {
+    const cleaned = (value || '')
+      .replace(/\d+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!cleaned) return '';
+    return cleaned
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const stripDigitsKeepSpacing = (value) => {
+    return (value || '').replace(/\d+/g, '').replace(/\s+/g, ' ');
+  };
 
   const isValidEmail = (value) => {
     const v = normalizeEmail(value);
@@ -65,11 +126,13 @@ const LoginScreen = () => {
     }
 
     if (isSignUp) {
-      if (!fullName.trim()) {
+      const normalizedName = normalizeFullName(fullName);
+
+      if (!normalizedName) {
         Alert.alert('Missing information', 'Please enter your full name.');
         return;
       }
-      if (fullName.trim().length > FULL_NAME_MAX) {
+      if (normalizedName.length > FULL_NAME_MAX) {
         Alert.alert('Name too long', `Full name must be ${FULL_NAME_MAX} characters or fewer.`);
         return;
       }
@@ -81,7 +144,7 @@ const LoginScreen = () => {
         Alert.alert('Passwords do not match', 'Please confirm your password.');
         return;
       }
-      signUp({ email: normalizedEmail, name: fullName.trim() });
+      signUp({ email: normalizedEmail, name: normalizedName });
       return;
     }
 
@@ -91,7 +154,13 @@ const LoginScreen = () => {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.container}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={[styles.container, { paddingBottom: theme.spacing.lg + keyboardPadding }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      >
         <View style={styles.authCard}>
           <View style={styles.segmented}>
             <TouchableOpacity
@@ -118,7 +187,7 @@ const LoginScreen = () => {
           <Text style={styles.subtitle}>{subtitle}</Text>
 
           {isSignUp && (
-            <View style={styles.field}>
+            <View style={styles.field} ref={fullNameFieldRef}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Full name</Text>
                 <Text style={styles.hint}>
@@ -130,10 +199,12 @@ const LoginScreen = () => {
                 placeholder="John Doe"
                 placeholderTextColor={theme.colors.textMuted}
                 value={fullName}
-                onChangeText={setFullName}
+                onChangeText={(v) => setFullName(stripDigitsKeepSpacing(v))}
                 autoCapitalize="words"
                 returnKeyType="next"
                 maxLength={FULL_NAME_MAX}
+                onFocus={() => scrollToField(fullNameFieldRef)}
+                onBlur={() => setFullName((v) => normalizeFullName(v))}
               />
               {fullName.length >= FULL_NAME_MAX && (
                 <Text style={styles.inlineError}>Full name has reached the maximum length.</Text>
@@ -141,7 +212,7 @@ const LoginScreen = () => {
             </View>
           )}
 
-          <View style={styles.field}>
+          <View style={styles.field} ref={emailFieldRef}>
             <Text style={styles.label}>Email</Text>
             <TextInput
               style={styles.input}
@@ -152,10 +223,11 @@ const LoginScreen = () => {
               keyboardType="email-address"
               autoCapitalize="none"
               returnKeyType="next"
+              onFocus={() => scrollToField(emailFieldRef)}
             />
           </View>
 
-          <View style={styles.field}>
+          <View style={styles.field} ref={passwordFieldRef}>
             <Text style={styles.label}>Password</Text>
             <View style={styles.passwordRow}>
               <TextInput
@@ -166,6 +238,7 @@ const LoginScreen = () => {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                onFocus={() => scrollToField(passwordFieldRef)}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword((v) => !v)}
@@ -180,7 +253,7 @@ const LoginScreen = () => {
           </View>
 
           {isSignUp && (
-            <View style={styles.field}>
+            <View style={styles.field} ref={confirmPasswordFieldRef}>
               <Text style={styles.label}>Confirm password</Text>
               <View style={styles.passwordRow}>
                 <TextInput
@@ -191,6 +264,7 @@ const LoginScreen = () => {
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
                   autoCapitalize="none"
+                  onFocus={() => scrollToField(confirmPasswordFieldRef)}
                 />
                 <TouchableOpacity
                   onPress={() => setShowConfirmPassword((v) => !v)}
@@ -216,14 +290,15 @@ const LoginScreen = () => {
             </Text>
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.bg },
-  container: { flex: 1, justifyContent: 'center', padding: theme.spacing.lg },
+  scroll: { flex: 1 },
+  container: { flexGrow: 1, justifyContent: 'center', padding: theme.spacing.lg },
   authCard: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radii.lg,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { PROVIDERS } from '../utils/mockData';
@@ -7,19 +8,8 @@ import { theme } from '../theme/theme';
 
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
-  const fallbackFromEmail = (email) => {
-    const e = (email || '').trim().toLowerCase();
-    const local = e.split('@')[0] || '';
-    const cleaned = local.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
-    if (!cleaned) return '';
-    return cleaned
-      .split(' ')
-      .filter(Boolean)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ');
-  };
-
-  const displayName = user?.name?.trim?.() || fallbackFromEmail(user?.email) || 'there';
+  const insets = useSafeAreaInsets();
+  const displayName = user?.name?.trim?.() || 'there';
 
   const renderProvider = ({ item }) => (
     <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ProviderDetail', { provider: item })}>
@@ -37,7 +27,7 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + theme.spacing.sm }]}>
         <View style={styles.headerLeft}>
           <Text style={styles.brand}>Scheduling</Text>
           <Text style={styles.welcome}>Hi {displayName},</Text>
