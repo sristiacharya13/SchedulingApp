@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { theme } from '../theme/theme';
 
 const AppointmentsScreen = () => {
   const { appointments, cancelAppointment } = useAuth();
@@ -24,9 +26,11 @@ const AppointmentsScreen = () => {
         <Text style={styles.timeSlot}>Time: {item.time}</Text>
       </View>
       <TouchableOpacity 
-        style={styles.cancelBtn} 
+        style={styles.cancelBtn}
         onPress={() => handleCancel(item.id)}
+        activeOpacity={0.85}
       >
+        <Ionicons name="close-circle-outline" size={18} color={theme.colors.danger} />
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>
     </View>
@@ -39,11 +43,15 @@ const AppointmentsScreen = () => {
           data={appointments}
           keyExtractor={(item) => item.id}
           renderItem={renderAppointment}
-          contentContainerStyle={{ padding: 20 }}
+          contentContainerStyle={{ padding: theme.spacing.lg }}
         />
       ) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No upcoming appointments.</Text>
+          <View style={styles.emptyIcon}>
+            <Ionicons name="calendar-outline" size={26} color={theme.colors.onDark} />
+          </View>
+          <Text style={styles.emptyTitle}>No bookings yet</Text>
+          <Text style={styles.emptyText}>When you book an appointment, it will show up here.</Text>
         </View>
       )}
     </View>
@@ -51,24 +59,52 @@ const AppointmentsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  container: { flex: 1, backgroundColor: theme.colors.bg },
   card: { 
-    backgroundColor: '#fff', 
-    padding: 15, 
-    borderRadius: 10, 
-    marginBottom: 15, 
+    backgroundColor: theme.colors.card, 
+    padding: theme.spacing.md, 
+    borderRadius: theme.radii.lg, 
+    marginBottom: theme.spacing.md, 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    elevation: 2 
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
-  providerName: { fontSize: 18, fontWeight: 'bold' },
-  details: { color: '#666', marginVertical: 4 },
-  timeSlot: { fontWeight: '600', color: '#007AFF' },
-  cancelBtn: { padding: 8 },
-  cancelText: { color: '#ff3b30', fontWeight: 'bold' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#999', fontSize: 16 }
+  providerName: { ...theme.typography.h3, color: theme.colors.text },
+  details: { ...theme.typography.small, color: theme.colors.textMuted, marginTop: 4 },
+  timeSlot: { ...theme.typography.small, color: theme.colors.primary, marginTop: 6, fontWeight: '800' },
+  cancelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: theme.radii.pill,
+    backgroundColor: 'rgba(216, 58, 58, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(216, 58, 58, 0.18)',
+  },
+  cancelText: { ...theme.typography.small, color: theme.colors.danger, fontWeight: '900' },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing.xl },
+  emptyIcon: {
+    height: 54,
+    width: 54,
+    borderRadius: 18,
+    backgroundColor: 'rgba(244, 247, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 247, 255, 0.20)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  emptyTitle: { ...theme.typography.h2, color: theme.colors.onDark, marginBottom: 6, textAlign: 'center' },
+  emptyText: { ...theme.typography.body, color: theme.colors.onDarkMuted, textAlign: 'center', lineHeight: 22 },
 });
 
 export default AppointmentsScreen;

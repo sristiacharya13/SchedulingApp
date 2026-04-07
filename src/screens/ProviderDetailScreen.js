@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../context/AuthContext';
+import { theme } from '../theme/theme';
 
 const ProviderDetailScreen = ({ route, navigation }) => {
   const { provider } = route.params;
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [isBooking, setIsBooking] = useState(false);
   const { bookAppointment } = useAuth();
 
   const handleBooking = () => {
     if (!selectedSlot) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert("Error", "Please select a time slot first");
       return;
     }
+    setIsBooking(true);
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     const newAppointment = {
       providerId: provider.id,
@@ -22,12 +29,14 @@ const ProviderDetailScreen = ({ route, navigation }) => {
     };
 
     bookAppointment(newAppointment);
+    setTimeout(()=>{
     Alert.alert(
       "Success", 
       "Appointment booked successfully!",
-      [{ text: "OK", onPress: () => navigation.navigate('Home') }]
+      [{ text: "OK", onPress: () => {setIsBooking(false); navigation.navigate('Home') }}]
     );
-  };
+  },1000);
+};
 
   return (
     <ScrollView style={styles.container}>
@@ -48,7 +57,8 @@ const ProviderDetailScreen = ({ route, navigation }) => {
                 styles.slot, 
                 selectedSlot === slot && styles.selectedSlot
               ]}
-              onPress={() => setSelectedSlot(slot)}
+              onPress={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedSlot(slot)}}
+              activeOpacity={0.9}
             >
               <Text style={[
                 styles.slotText, 
@@ -58,8 +68,13 @@ const ProviderDetailScreen = ({ route, navigation }) => {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.bookButton} onPress={handleBooking}>
-          <Text style={styles.bookButtonText}>Confirm Appointment</Text>
+        <TouchableOpacity 
+          style={[styles.bookButton, isBooking && styles.successButton]} 
+          onPress={handleBooking}
+          disabled={isBooking}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.bookButtonText}>{isBooking ? "✓ Booked!":"Confirm Appointment"}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -67,21 +82,46 @@ const ProviderDetailScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: theme.colors.bg },
   banner: { width: '100%', height: 250 },
-  detailsContainer: { padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, marginTop: -20, backgroundColor: '#fff' },
-  name: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-  category: { fontSize: 16, color: '#007AFF', marginBottom: 15 },
-  aboutTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 5 },
-  aboutText: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  slot: { padding: 10, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, width: '30%', alignItems: 'center' },
-  selectedSlot: { backgroundColor: '#007AFF', borderColor: '#007AFF' },
-  slotText: { color: '#333' },
-  selectedSlotText: { color: '#fff', fontWeight: 'bold' },
-  bookButton: { backgroundColor: '#28a745', padding: 15, borderRadius: 10, marginTop: 30, alignItems: 'center' },
-  bookButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  detailsContainer: {
+    padding: theme.spacing.lg,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -22,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  name: { ...theme.typography.h2, color: theme.colors.text, fontSize: 24 },
+  category: { ...theme.typography.small, color: theme.colors.primary, marginTop: 6, marginBottom: theme.spacing.md, fontWeight: '900' },
+  aboutTitle: { ...theme.typography.h3, marginBottom: 6, color: theme.colors.text },
+  aboutText: { ...theme.typography.body, color: theme.colors.textMuted, lineHeight: 22, marginBottom: theme.spacing.lg },
+  sectionTitle: { ...theme.typography.h3, marginBottom: theme.spacing.sm, color: theme.colors.text },
+  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 },
+  slot: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+    borderRadius: theme.radii.md,
+    width: '30%',
+    alignItems: 'center',
+    marginHorizontal: 6,
+    marginBottom: 12,
+  },
+  selectedSlot: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  slotText: { ...theme.typography.small, color: theme.colors.text, fontWeight: '800' },
+  selectedSlotText: { color: '#fff' },
+  bookButton: {
+    backgroundColor: theme.colors.success,
+    paddingVertical: 14,
+    borderRadius: theme.radii.md,
+    marginTop: theme.spacing.lg,
+    alignItems: 'center',
+  },
+  bookButtonText: { ...theme.typography.h3, color: '#fff' },
+  successButton: { backgroundColor: '#2BB673' },
 });
 
 export default ProviderDetailScreen;
