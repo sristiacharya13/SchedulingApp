@@ -22,3 +22,6 @@ A React Native application built with Expo that allows users to browse service p
 ## Assumptions
 - Data is currently mocked and stored in-memory (resets on app reload).
 - Authentication is handled locally without a live backend for demonstration purposes.
+
+### Open this link on your Android devices to install the app:
+https://expo.dev/accounts/sristiacharya13/projects/SchedulingApp/builds/76ed8ace-46af-4730-ab01-baa4e2744cd5
